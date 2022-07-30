@@ -46,5 +46,9 @@ if __name__ == "__main__":
     print(xrp.get_max_seek_index())
     cost = xrp.set_seek_index(100).buy(1000)
     assert(xrp.set_seek_index(xrp.get_seek_index()+900).sell(1000)-cost==xrp.buy_sell(1000,100,900))
+
+    print(xrp.buy_sell(1000,300,2300))
+
+
     
     
