@@ -6,11 +6,11 @@ import tqdm
 import pandas as pd
 from torch import threshold
 
+
 class Engine(object):
 
     def __init__(self,file,seq_col="low"):
         self.ds = pd.read_csv(file)
-        self.seek_index = 0
         self.max_seek_index = len(self.ds.index)-1
         self.seq_col = seq_col
     
@@ -19,41 +19,33 @@ class Engine(object):
 
     def get_rows(self):
         return self.max_seek_index
-
-    def set_seek_index(self, index):
-        self.seek_index = index
-        return self
-
-    def get_seek_index(self):
-        return self.seek_index
+    
+    def get_seek_date(self,idx):
+        return self.ds.index[idx]
 
     def get_max_seek_index(self):
         return self.max_seek_index
 
-    def reset(self):
-        self.seek_index_index = 0
-        return self
+    def get_ma(self,idx, duration=7):
+        if idx - duration < 0:
+            return 0
+        return np.mean(self.ds[self.seq_col][idx-duration:idx])
 
-    def advance(self):
-        if self.seek_index < self.max_seek_index:
-            self.seek_index += 1
-        return self
-
-    def reverse(self):
-        if self.seek_index > 0:
-            self.seek_index -= 1
-        return self
-
-    def buy(self,qty):
-        pr = self.ds[self.seq_col][self.seek_index]
+    def buy(self,qty,idx):
+        pr = self.ds[self.seq_col][idx]
         return qty*pr
 
-    def sell(self,qty):
-        return self.buy(qty)
+    def sell(self,qty,idx):
+        return self.buy(qty,idx)
 
     def buy_sell(self,qty,start, duration):
-        cost = self.set_seek_index(start).buy(qty)
-        return self.set_seek_index(duration+start).sell(qty)-cost
+        cost = self.buy(qty,start)
+        if start + duration < self.get_max_seek_index():
+            return self.sell(qty,start+duration)-cost
+        return 0
+    
+    def get_value(self,idx):
+        return self.ds[self.seq_col][idx]
 
 def nbrs(a,ds,eps):
     __nbrs = []
@@ -419,7 +411,7 @@ def plot_acf(x, lags=30):
 
 def plot_pacf(x, lags=30):
     
-    lag = [i for i in range(0, lags+1)]
+    lag = [i for i in range(0, lags)]
     
     plt.ylim(-1,1)
     N = len(x)
